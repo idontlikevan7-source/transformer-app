@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>คำนวณโหลดหม้อแปลง</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a2e'/><text y='.9em' font-size='75' x='12'>⚡</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%231a1a2e'/><text y='.9em' font-size='75' x='12'>⚡</text></svg>">
+<meta name="apple-mobile-web-app-title" content="โหลดหม้อแปลง">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --card: #16213e;
+    --border: #0f3460;
+    --accent: #e94560;
+    --green: #00b894;
+    --yellow: #fdcb6e;
+    --blue: #74b9ff;
+    --text: #e8e8f0;
+    --muted: #8888aa;
+    --phase-a: #ff6b6b;
+    --phase-b: #ffd93d;
+    --phase-c: #6bcb77;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Sarabun', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 2rem; }
+
+  .header {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+    padding: 1rem 1.2rem 0.8rem;
+    position: sticky; top: 0; z-index: 100;
+    border-bottom: 2px solid var(--accent);
+    box-shadow: 0 4px 20px rgba(233,69,96,0.2);
+  }
+  .header-title { font-size: 0.8rem; font-weight: 700; color: var(--yellow); letter-spacing: 0.05em; text-transform: uppercase; }
+  .header-sub { font-size: 0.6rem; color: var(--muted); margin-top: 0.2rem; font-family: var(--mono); }
+
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .tab { flex: 1; padding: 0.7rem 0.5rem; font-family: var(--sans); font-size: 0.72rem; font-weight: 600; border: none; background: transparent; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .tab.active { color: var(--yellow); border-bottom-color: var(--yellow); background: rgba(253,203,110,0.06); }
+
+  .section { display: none; padding: 1rem; }
+  .section.active { display: block; }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+  .card-title { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--yellow); margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.5rem; }
+  .card-title::before { content: ''; display: inline-block; width: 3px; height: 12px; background: var(--accent); border-radius: 2px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .field label { font-size: 0.62rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+  .field input, .field select { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.55rem 0.7rem; color: var(--text); font-family: var(--mono); font-size: 0.85rem; outline: none; transition: border-color 0.2s; width: 100%; }
+  .field input:focus, .field select:focus { border-color: var(--yellow); box-shadow: 0 0 0 2px rgba(253,203,110,0.1); }
+  .field input::placeholder { color: var(--muted); opacity: 0.5; }
+  select option { background: var(--card); }
+
+  .volt-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; }
+  .volt-field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .volt-label { font-size: 0.6rem; font-weight: 700; text-align: center; padding: 0.15rem 0.3rem; border-radius: 4px; letter-spacing: 0.08em; }
+  .volt-label.a { background: rgba(255,107,107,0.2); color: var(--phase-a); }
+  .volt-label.b { background: rgba(255,217,61,0.2); color: var(--phase-b); }
+  .volt-label.c { background: rgba(107,203,119,0.2); color: var(--phase-c); }
+  .volt-field input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.5rem; color: var(--text); font-family: var(--mono); font-size: 0.85rem; outline: none; text-align: center; width: 100%; transition: border-color 0.2s; }
+  .volt-field input:focus { border-color: var(--yellow); }
+
+  .load-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .load-table th { padding: 0.5rem 0.3rem; font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); background: var(--bg); text-align: center; border: 1px solid var(--border); }
+  .load-table th.ph-a { color: var(--phase-a); }
+  .load-table th.ph-b { color: var(--phase-b); }
+  .load-table th.ph-c { color: var(--phase-c); }
+  .load-table td { border: 1px solid var(--border); padding: 0.2rem; text-align: center; }
+  .load-table td.row-label { background: var(--bg); font-family: var(--mono); font-size: 0.75rem; font-weight: 700; color: var(--yellow); padding: 0.4rem 0.5rem; width: 42px; }
+  .load-table input { background: transparent; border: none; color: var(--text); font-family: var(--mono); font-size: 0.82rem; text-align: center; width: 100%; padding: 0.35rem 0.2rem; outline: none; }
+  .load-table input:focus { background: rgba(253,203,110,0.08); border-radius: 4px; }
+  .sum-row td { background: rgba(116,185,255,0.1); font-family: var(--mono); font-weight: 700; font-size: 0.85rem; padding: 0.5rem 0.3rem; color: var(--blue); }
+  .sum-row td.row-label { color: var(--blue); }
+
+  .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; margin-bottom: 0.8rem; }
+  .unbalance-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin: 0.8rem 0; }
+  .unbalance-item { background: var(--bg); border-radius: 8px; padding: 0.7rem 0.5rem; text-align: center; border: 1px solid var(--border); }
+  .unbalance-item .phase-tag { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+  .unbalance-item .pct { font-family: var(--mono); font-size: 1.3rem; font-weight: 700; }
+  .unbalance-item .unit { font-size: 0.6rem; color: var(--muted); margin-top: 0.1rem; }
+  .status-ok { color: var(--green); }
+  .status-warn { color: var(--yellow); }
+  .status-danger { color: var(--accent); }
+
+  .result-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .result-row:last-child { border-bottom: none; }
+  .result-label { font-size: 0.7rem; color: var(--muted); }
+  .result-value { font-family: var(--mono); font-size: 1rem; font-weight: 700; color: var(--text); }
+  .result-value .unit { font-size: 0.65rem; color: var(--muted); margin-left: 0.2rem; }
+
+  .big-result { background: linear-gradient(135deg, rgba(0,184,148,0.15), rgba(0,184,148,0.05)); border: 1px solid rgba(0,184,148,0.3); border-radius: 10px; padding: 1.2rem; text-align: center; margin-bottom: 0.8rem; }
+  .big-result .label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.4rem; }
+  .big-result .value { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; color: var(--green); line-height: 1; }
+  .big-result .sub { font-size: 0.7rem; color: var(--muted); margin-top: 0.3rem; }
+
+  .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; margin-top: 1rem; }
+  .btn { padding: 0.85rem 1rem; border: none; border-radius: 8px; font-family: var(--sans); font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.15s; letter-spacing: 0.03em; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--green); color: #0f0f1a; }
+  .btn-secondary { background: rgba(233,69,96,0.15); color: var(--accent); border: 1px solid rgba(233,69,96,0.3); }
+  .btn-export { background: linear-gradient(135deg, #0f3460, #1a1a2e); color: var(--blue); border: 1px solid var(--blue); grid-column: 1/-1; }
+  .btn-share { background: rgba(116,185,255,0.15); color: var(--blue); border: 1px solid rgba(116,185,255,0.3); }
+
+  .alert { border-radius: 8px; padding: 0.7rem 0.9rem; font-size: 0.72rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; }
+  .alert-warning { background: rgba(253,203,110,0.1); border: 1px solid rgba(253,203,110,0.3); color: var(--yellow); }
+  .alert-danger { background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3); color: var(--accent); }
+  .alert-ok { background: rgba(0,184,148,0.1); border: 1px solid rgba(0,184,148,0.3); color: var(--green); }
+
+  .history-item { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0.9rem; margin-bottom: 0.7rem; cursor: pointer; transition: border-color 0.2s; }
+  .history-item:active { border-color: var(--yellow); }
+  .history-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+  .history-station { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+  .history-date { font-family: var(--mono); font-size: 0.62rem; color: var(--muted); }
+  .history-pills { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+  .pill { font-family: var(--mono); font-size: 0.62rem; padding: 0.2rem 0.5rem; border-radius: 20px; font-weight: 700; }
+  .pill-load { background: rgba(116,185,255,0.15); color: var(--blue); }
+  .pill-ok { background: rgba(0,184,148,0.15); color: var(--green); }
+  .pill-warn { background: rgba(253,203,110,0.15); color: var(--yellow); }
+  .pill-danger { background: rgba(233,69,96,0.15); color: var(--accent); }
+
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); font-size: 0.8rem; }
+  .empty-icon { font-size: 2.5rem; margin-bottom: 0.8rem; opacity: 0.4; }
+  .mt-sm { margin-top: 0.6rem; }
+  .section-note { font-size: 0.65rem; color: var(--muted); margin-bottom: 0.8rem; padding: 0.5rem 0.7rem; background: rgba(255,255,255,0.03); border-radius: 6px; border-left: 2px solid var(--border); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">⚡ คำนวณโหลดหม้อแปลงไฟฟ้า</div>
+  <div class="header-sub">TRANSFORMER LOAD DISTRIBUTION CALCULATOR v1.0</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" id="btn-input" onclick="switchTab('input',this)">📋 ข้อมูล</button>
+  <button class="tab" id="btn-result" onclick="switchTab('result',this)">📊 ผลลัพธ์</button>
+  <button class="tab" id="btn-history" onclick="switchTab('history',this)">🗂️ ประวัติ</button>
+</div>
+
+<!-- ═══════ INPUT TAB ═══════ -->
+<div class="section active" id="tab-input">
+
+  <div class="card">
+    <div class="card-title">ข้อมูลทั่วไป</div>
+    <div class="form-grid">
+      <div class="field">
+        <label>สถานที่</label>
+        <input type="text" id="station" placeholder="ชื่อสถานที่">
+      </div>
+      <div class="field">
+        <label>PEA เลขที่</label>
+        <input type="text" id="pea" placeholder="รหัส PEA">
+      </div>
+      <div class="field">
+        <label>ขนาด (KVA)</label>
+        <input type="number" id="kva" placeholder="เช่น 100" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label>เฟส</label>
+        <select id="phase_type">
+          <option value="3">3 เฟส</option>
+          <option value="1">1 เฟส</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>วันที่</label>
+        <input type="date" id="rec_date">
+      </div>
+      <div class="field">
+        <label>เวลา</label>
+        <input type="time" id="rec_time">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">แรงดันไฟฟ้าที่หม้อแปลง (V)</div>
+    <div class="volt-row">
+      <div class="volt-field">
+        <div class="volt-label a">เฟส A</div>
+        <input type="number" id="volt_a" placeholder="220" inputmode="decimal">
+      </div>
+      <div class="volt-field">
+        <div class="volt-label b">เฟส B</div>
+        <input type="number" id="volt_b" placeholder="220" inputmode="decimal">
+      </div>
+      <div class="volt-field">
+        <div class="volt-label c">เฟส C</div>
+        <input type="number" id="volt_c" placeholder="220" inputmode="decimal">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">กระแสโหลด (A) — F1 ถึง F4</div>
+    <table class="load-table">
+      <thead>
+        <tr>
+          <th>โหลด</th>
+          <th class="ph-a">เฟส A</th>
+          <th class="ph-b">เฟส B</th>
+          <th class="ph-c">เฟส C</th>
+        </tr>
+      </thead>
+      <tbody id="feeder-rows"></tbody>
+      <tfoot>
+        <tr class="sum-row">
+          <td class="row-label">SUM</td>
+          <td id="sum_a">0</td>
+          <td id="sum_b">0</td>
+          <td id="sum_c">0</td>
+        </tr>
+      </tfoot>
+    </table>
+    <div style="margin-top:0.6rem">
+      <button class="btn btn-share" style="width:100%;padding:0.5rem" onclick="addFeeder()">+ เพิ่มฟีดเดอร์</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">กระแสพิกัดหม้อแปลง</div>
+    <div class="field">
+      <label>กระแสพิกัด (A)</label>
+      <input type="number" id="rated_current" placeholder="เช่น 130" inputmode="decimal">
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="calculate()">⚡ คำนวณ</button>
+    <button class="btn btn-secondary" onclick="clearForm()">🗑 ล้างข้อมูล</button>
+    <button class="btn btn-export" onclick="exportAndSend()">📤 Export CSV / ส่งข้อมูล</button>
+  </div>
+
+</div>
+
+<!-- ═══════ RESULT TAB ═══════ -->
+<div class="section" id="tab-result">
+  <div id="result-placeholder" class="empty-state">
+    <div class="empty-icon">📊</div>
+    <div>กรอกข้อมูลและกด <strong>คำนวณ</strong><br>เพื่อดูผลลัพธ์</div>
+  </div>
+  <div id="result-content"></div>
+</div>
+
+<!-- ═══════ HISTORY TAB ═══════ -->
+<div class="section" id="tab-history">
+  <div class="section-note">แตะรายการเพื่อดูผลลัพธ์อีกครั้ง • บันทึกอัตโนมัติทุกครั้งที่คำนวณ</div>
+  <div id="history-list"></div>
+</div>
+
+<script>
+// ─── Init ──────────────────────────────────────────
+let history = JSON.parse(localStorage.getItem('tf_history') || '[]');
+let lastResult = null;
+let feederCount = 4;
+
+window.onload = () => {
+  const now = new Date();
+  document.getElementById('rec_date').value = now.toISOString().split('T')[0];
+  document.getElementById('rec_time').value = now.toTimeString().slice(0,5);
+  buildFeeders(4);
+  renderHistory();
+};
+
+// ─── Build feeder rows ─────────────────────────────
+function buildFeeders(n) {
+  const tbody = document.getElementById('feeder-rows');
+  tbody.innerHTML = '';
+  for (let i = 1; i <= n; i++) addFeederRow(i);
+}
+
+function addFeederRow(i) {
+  const tbody = document.getElementById('feeder-rows');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="row-label">F${i}</td>
+    <td><input type="number" id="f${i}a" placeholder="0" inputmode="decimal" oninput="updateSums()"></td>
+    <td><input type="number" id="f${i}b" placeholder="0" inputmode="decimal" oninput="updateSums()"></td>
+    <td><input type="number" id="f${i}c" placeholder="0" inputmode="decimal" oninput="updateSums()"></td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function addFeeder() {
+  feederCount++;
+  addFeederRow(feederCount);
+}
+
+// ─── Tab switch ────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ─── Live sums ─────────────────────────────────────
+function updateSums() {
+  ['a','b','c'].forEach(ph => {
+    let sum = 0;
+    for (let i = 1; i <= feederCount; i++) {
+      const el = document.getElementById(`f${i}${ph}`);
+      if (el) sum += parseFloat(el.value) || 0;
+    }
+    document.getElementById('sum_'+ph).textContent = +sum.toFixed(2);
+  });
+}
+
+// ─── Calculate ─────────────────────────────────────
+function calculate() {
+  const sumA = parseFloat(document.getElementById('sum_a').textContent) || 0;
+  const sumB = parseFloat(document.getElementById('sum_b').textContent) || 0;
+  const sumC = parseFloat(document.getElementById('sum_c').textContent) || 0;
+  const rated = parseFloat(document.getElementById('rated_current').value) || 0;
+  const kva = parseFloat(document.getElementById('kva').value) || 0;
+  const station = document.getElementById('station').value || 'ไม่ระบุ';
+  const pea = document.getElementById('pea').value || '-';
+  const voltA = parseFloat(document.getElementById('volt_a').value) || 0;
+  const voltB = parseFloat(document.getElementById('volt_b').value) || 0;
+  const voltC = parseFloat(document.getElementById('volt_c').value) || 0;
+  const phaseType = document.getElementById('phase_type').value;
+
+  const avg = (sumA + sumB + sumC) / 3;
+  const unbalA = avg > 0 ? Math.abs(sumA - avg) / avg * 100 : 0;
+  const unbalB = avg > 0 ? Math.abs(sumB - avg) / avg * 100 : 0;
+  const unbalC = avg > 0 ? Math.abs(sumC - avg) / avg * 100 : 0;
+  const maxUnbal = Math.max(unbalA, unbalB, unbalC);
+  const maxPhase = Math.max(sumA, sumB, sumC);
+  const dispatchPct = rated > 0 ? maxPhase / rated * 100 : 0;
+
+  // Collect feeder data
+  const loadData = {};
+  for (let i = 1; i <= feederCount; i++) {
+    loadData[`f${i}a`] = parseFloat(document.getElementById(`f${i}a`)?.value) || 0;
+    loadData[`f${i}b`] = parseFloat(document.getElementById(`f${i}b`)?.value) || 0;
+    loadData[`f${i}c`] = parseFloat(document.getElementById(`f${i}c`)?.value) || 0;
+  }
+
+  const result = {
+    station, pea, kva, phaseType,
+    voltA, voltB, voltC,
+    sumA, sumB, sumC,
+    unbalA, unbalB, unbalC, maxUnbal,
+    rated, dispatchAmp: maxPhase, dispatchPct,
+    date: document.getElementById('rec_date').value,
+    time: document.getElementById('rec_time').value,
+    feederCount, loadData
+  };
+
+  lastResult = result;
+  history.unshift({ ...result, id: Date.now() });
+  if (history.length > 100) history.pop();
+  localStorage.setItem('tf_history', JSON.stringify(history));
+
+  renderResult(result);
+  renderHistory();
+  switchTab('result', document.getElementById('btn-result'));
+}
+
+// ─── Render result ─────────────────────────────────
+function renderResult(r) {
+  const ub = (p) => p > 20 ? 'status-danger' : p > 10 ? 'status-warn' : 'status-ok';
+  const statusText = r.maxUnbal <= 10 ? '✅ สมดุลดี' : r.maxUnbal <= 20 ? '⚠️ ควรระวัง' : '🚨 ไม่สมดุล! เกิน 20%';
+  const alertClass = r.maxUnbal <= 10 ? 'alert-ok' : r.maxUnbal <= 20 ? 'alert-warning' : 'alert-danger';
+  const dispColor = r.dispatchPct >= 100 ? 'var(--accent)' : r.dispatchPct >= 80 ? 'var(--yellow)' : 'var(--green)';
+
+  document.getElementById('result-placeholder').style.display = 'none';
+  document.getElementById('result-content').innerHTML = `
+    <div class="result-card">
+      <div class="card-title">📍 ${r.station}</div>
+      <div class="result-row"><span class="result-label">PEA</span><span class="result-value">${r.pea}</span></div>
+      <div class="result-row"><span class="result-label">ขนาดหม้อแปลง</span><span class="result-value">${r.kva || '-'}<span class="unit">KVA</span></span></div>
+      <div class="result-row"><span class="result-label">วันที่ / เวลา</span><span class="result-value" style="font-size:0.75rem">${r.date} ${r.time}</span></div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-title">กระแสรวมแต่ละเฟส (A)</div>
+      <div class="unbalance-section">
+        <div class="unbalance-item">
+          <div class="phase-tag" style="color:var(--phase-a)">เฟส A</div>
+          <div class="pct" style="color:var(--phase-a)">${r.sumA.toFixed(1)}</div>
+          <div class="unit">A</div>
+        </div>
+        <div class="unbalance-item">
+          <div class="phase-tag" style="color:var(--phase-b)">เฟส B</div>
+          <div class="pct" style="color:var(--phase-b)">${r.sumB.toFixed(1)}</div>
+          <div class="unit">A</div>
+        </div>
+        <div class="unbalance-item">
+          <div class="phase-tag" style="color:var(--phase-c)">เฟส C</div>
+          <div class="pct" style="color:var(--phase-c)">${r.sumC.toFixed(1)}</div>
+          <div class="unit">A</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-card">
+      <div class="card-title">Unbalance (%)</div>
+      <div class="alert ${alertClass}">${statusText} — ควรต่างกันไม่เกิน 20%</div>
+      <div class="unbalance-section">
+        <div class="unbalance-item">
+          <div class="phase-tag" style="color:var(--phase-a)">เฟส A</div>
+          <div class="pct ${ub(r.unbalA)}">${r.unbalA.toFixed(1)}</div>
+          <div class="unit">%</div>
+        </div>
+        <div class="unbalance-item">
+          <div class="phase-tag" style="color:var(--phase-b)">เฟส B</div>
+          <div class="pct ${ub(r.unbalB)}">${r.unbalB.toFixed(1)}</div>
+          <div class="unit">%</div>
+        </div>
+        <div class="unbalance-item">
+          <div class="phase-tag" style="color:var(--phase-c)">เฟส C</div>
+          <div class="pct ${ub(r.unbalC)}">${r.unbalC.toFixed(1)}</div>
+          <div class="unit">%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="big-result" style="border-color:${dispColor}33; background:linear-gradient(135deg,${dispColor}22,${dispColor}08)">
+      <div class="label">การจ่ายโหลด คิดเป็น</div>
+      <div class="value" style="color:${dispColor}">${r.dispatchPct.toFixed(1)}<span style="font-size:1rem">%</span></div>
+      <div class="sub">จ่ายโหลด ${r.dispatchAmp.toFixed(1)} A จากพิกัด ${r.rated} A</div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="exportCSV()">⬇️ Export CSV</button>
+      <button class="btn btn-share" onclick="shareResult()">📤 แชร์</button>
+    </div>
+  `;
+}
+
+// ─── History render ────────────────────────────────
+function renderHistory() {
+  const el = document.getElementById('history-list');
+  if (history.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🗂️</div><div>ยังไม่มีประวัติ</div></div>';
+    return;
+  }
+  el.innerHTML = history.map(r => {
+    const sp = r.maxUnbal > 20 ? `<span class="pill pill-danger">🚨 ${r.maxUnbal.toFixed(0)}%</span>` :
+      r.maxUnbal > 10 ? `<span class="pill pill-warn">⚠️ ${r.maxUnbal.toFixed(0)}%</span>` :
+      `<span class="pill pill-ok">✅ ${r.maxUnbal.toFixed(0)}%</span>`;
+    return `<div class="history-item" onclick="loadHistoryItem(${r.id})">
+      <div class="history-header">
+        <div class="history-station">${r.station || 'ไม่ระบุสถานที่'}</div>
+        <div class="history-date">${r.date} ${r.time}</div>
+      </div>
+      <div class="history-pills">
+        <span class="pill pill-load">📦 ${r.kva || '?'} KVA</span>
+        ${sp}
+        <span class="pill pill-load">⚡ ${r.dispatchPct.toFixed(0)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function loadHistoryItem(id) {
+  const r = history.find(h => h.id === id);
+  if (!r) return;
+  lastResult = r;
+  renderResult(r);
+  switchTab('result', document.getElementById('btn-result'));
+}
+
+// ─── Export (exact column match to screenshot) ─────
+function exportCSV() {
+  if (!lastResult) { alert('ยังไม่มีผลลัพธ์'); return; }
+  const r = lastResult;
+  const ts = `${r.date} ${r.time}`;
+
+  // Exact columns from the Google Sheet screenshot
+  const headers = [
+    'ประทับเวลา',
+    'กระแสพ',
+    'PEA หม้อแปลง',
+    'F1 กระแสเฟส A', 'F1 กระแสเฟส B', 'F1 กระแสเฟส C',
+    'F2 กระแสเฟส A', 'F2 กระแสเฟส B', 'F2 กระแสเฟส C',
+    'F3 กระแสเฟส A', 'F3 กระแสเฟส B', 'F3 กระแสเฟส C',
+    'F4 กระแสเฟส A', 'F4 กระแสเฟส B', 'F4 กระแสเฟส C',
+    'AN', 'BN', 'CN',
+    'แรงดันที่ปลายสาย',
+    'AN 2', 'BN 2', 'CN 2',
+    'PEA มิเตอร์ปลายสาย'
+  ];
+
+  const ld = r.loadData || {};
+  const vals = [
+    ts,
+    r.dispatchPct.toFixed(1),           // กระแสพ = load %
+    r.pea,
+    ld.f1a||'', ld.f1b||'', ld.f1c||'',
+    ld.f2a||'', ld.f2b||'', ld.f2c||'',
+    ld.f3a||'', ld.f3b||'', ld.f3c||'',
+    ld.f4a||'', ld.f4b||'', ld.f4c||'',
+    r.voltA||'', r.voltB||'', r.voltC||'',  // AN BN CN = voltage at transformer
+    '',                                      // แรงดันที่ปลายสาย (end-of-line voltage — fill on site)
+    '', '', '',                              // AN2 BN2 CN2
+    ''                                       // PEA มิเตอร์ปลายสาย
+  ];
+
+  const csv = [headers.join(','), vals.join(',')].join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `โหลดหม้อแปลง_${r.station}_${r.date}.csv`;
+  a.click();
+}
+
+function exportAndSend() {
+  if (!lastResult) { alert('กรุณาคำนวณก่อน แล้วลองใหม่'); return; }
+  const r = lastResult;
+  const ld = r.loadData || {};
+  const base = 'https://docs.google.com/forms/d/e/1FAIpQLSdNl3fBA2m0pUm4yJnAs7asZezat6wsagegVwrLdmLSWj-gIg/viewform?usp=pp_url';
+  const params = [
+    ['entry.940344977',  r.pea],
+    ['entry.755267740',  ld.f1a || ''],
+    ['entry.844501491',  ld.f1b || ''],
+    ['entry.1998297410', ld.f1c || ''],
+    ['entry.689319296',  ld.f2a || ''],
+    ['entry.808674353',  ld.f2b || ''],
+    ['entry.1615141424', ld.f2c || ''],
+    ['entry.999996986',  ld.f3a || ''],
+    ['entry.810574960',  ld.f3b || ''],
+    ['entry.1650915248', ld.f3c || ''],
+    ['entry.2000793987', ld.f4a || ''],
+    ['entry.86900894',   ld.f4b || ''],
+    ['entry.2011136242', ld.f4c || ''],
+    ['entry.109559815',  r.voltA || ''],
+    ['entry.1150590629', r.voltB || ''],
+    ['entry.1358649578', r.voltC || ''],
+    ['entry.1243766868', r.dispatchPct.toFixed(1)],
+  ].map(([k,v]) => k + '=' + encodeURIComponent(v)).join('&');
+  window.open(base + '&' + params, '_blank');
+}
+
+function shareResult() {
+  if (!lastResult) return;
+  const r = lastResult;
+  const txt = `📍 หม้อแปลง: ${r.station}\n📅 ${r.date} ${r.time}\n⚡ โหลด: ${r.dispatchPct.toFixed(1)}% (${r.dispatchAmp.toFixed(1)}A / ${r.rated}A)\n📊 Unbalance: A=${r.unbalA.toFixed(1)}% B=${r.unbalB.toFixed(1)}% C=${r.unbalC.toFixed(1)}%\n${r.maxUnbal>20?'🚨 เกินมาตรฐาน!':'✅ อยู่ในเกณฑ์ปกติ'}`;
+  if (navigator.share) { navigator.share({ title: 'ผลการวัดโหลดหม้อแปลง', text: txt }); }
+  else { navigator.clipboard.writeText(txt).then(() => alert('คัดลอกผลลัพธ์แล้ว!')); }
+}
+
+function clearForm() {
+  if (!confirm('ล้างข้อมูลทั้งหมด?')) return;
+  ['station','pea','kva','volt_a','volt_b','volt_c','rated_current'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  feederCount = 4;
+  buildFeeders(4);
+  ['sum_a','sum_b','sum_c'].forEach(id => document.getElementById(id).textContent = '0');
+}
+</script>
+</body>
+</html>
